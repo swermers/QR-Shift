@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "QR Codes" },
   { href: "/analytics", label: "Analytics" },
   { href: "/rules", label: "Rules" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function DashboardShell({ userName, children }: DashboardShellProps) {
