@@ -5,6 +5,7 @@ import type { QRCode } from "@/types/database";
 import { deleteQRCode } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { CreateQRModal } from "./create-qr-modal";
+import { QRCustomizeModal } from "./qr-customize-modal";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -17,6 +18,7 @@ function timeAgo(dateStr: string): string {
 
 export function QRCodeCard({ qr }: { qr: QRCode }) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [copied, setCopied] = useState(false);
   const router = useRouter();
 
@@ -73,6 +75,12 @@ export function QRCodeCard({ qr }: { qr: QRCode }) {
             Update Link
           </button>
           <button
+            onClick={() => setShowCustomize(true)}
+            className="px-3 py-1.5 text-xs bg-[#1a1d27] border border-[#3ecf8e]/30 rounded-lg text-[#3ecf8e] hover:bg-[#3ecf8e]/10 transition whitespace-nowrap"
+          >
+            Customize QR
+          </button>
+          <button
             onClick={handleDelete}
             className="px-3 py-1.5 text-xs border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/10 transition"
           >
@@ -85,6 +93,13 @@ export function QRCodeCard({ qr }: { qr: QRCode }) {
         <CreateQRModal
           onClose={() => setShowEdit(false)}
           editingQR={qr}
+        />
+      )}
+
+      {showCustomize && (
+        <QRCustomizeModal
+          qr={qr}
+          onClose={() => setShowCustomize(false)}
         />
       )}
     </>
