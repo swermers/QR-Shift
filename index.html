@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Shift — Dynamic QR Code Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-hover: #222633;
+    --border: #2a2e3d;
+    --text: #e8e9ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c63ff;
+    --accent-hover: #7b73ff;
+    --accent-glow: rgba(108, 99, 255, 0.15);
+    --success: #3ecf8e;
+    --warning: #f5a623;
+    --danger: #ef4444;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Ambient background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(108,99,255,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(62,207,142,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; }
+
+  /* ── Auth Screen ── */
+  .auth-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.5s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .auth-logo {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(135deg, var(--accent), var(--success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .auth-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    width: 100%;
+  }
+
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-secondary:hover { background: var(--surface-hover); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+  .btn-sm { padding: 0.5rem 0.9rem; font-size: 0.82rem; }
+
+  .auth-toggle {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  .auth-toggle a {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .auth-toggle a:hover { text-decoration: underline; }
+
+  /* ── Dashboard ── */
+  .dashboard { display: none; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(26,29,39,0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .topbar-user {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  .main-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  .page-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-card .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  /* ── QR Cards ── */
+  .qr-list { display: flex; flex-direction: column; gap: 1rem; }
+
+  .qr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    transition: border-color 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .qr-card:hover { border-color: var(--accent); }
+
+  .qr-card-preview {
+    width: 100px;
+    height: 100px;
+    background: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .qr-card-preview canvas, .qr-card-preview img {
+    width: 92px !important;
+    height: 92px !important;
+  }
+
+  .qr-card-info h3 {
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+  }
+
+  .qr-card-url {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    word-break: break-all;
+    margin-bottom: 0.5rem;
+  }
+
+  .qr-card-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .qr-card-meta .scan-count {
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  .qr-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 2rem;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  .modal h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    justify-content: flex-end;
+  }
+
+  /* ── QR Download modal ── */
+  .download-preview {
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: var(--radius);
+  }
+
+  .download-options {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+
+  /* ── Logo overlay option ── */
+  .logo-upload-group {
+    margin: 1rem 0;
+    text-align: center;
+  }
+
+  .logo-upload-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .logo-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .logo-upload-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .logo-preview-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── History log ── */
+  .history-list {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .history-item {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+  }
+
+  .history-item .history-url {
+    color: var(--text);
+    word-break: break-all;
+    max-width: 70%;
+  }
+
+  /* ── Routing rules ── */
+  .routing-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .routing-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .routing-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .routing-rules { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .routing-rule {
+    display: grid;
+    grid-template-columns: 120px 1fr 32px;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .routing-rule select, .routing-rule input {
+    padding: 0.55rem 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+
+  .routing-rule select:focus, .routing-rule input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .remove-rule-btn {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--danger);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: background 0.2s;
+  }
+
+  .remove-rule-btn:hover { background: rgba(239,68,68,0.1); }
+
+  .add-rule-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .add-rule-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .routing-info {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-routing {
+    background: rgba(108,99,255,0.15);
+    color: var(--accent);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 300;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .toast.success { border-color: var(--success); }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .qr-card {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    .qr-card-preview { margin: 0 auto; }
+    .qr-card-actions { flex-direction: row; justify-content: center; flex-wrap: wrap; }
+    .page-header { flex-direction: column; gap: 1rem; }
+    .topbar { padding: 1rem; }
+    .main-content { padding: 1.5rem; }
+    .auth-card { padding: 2rem; }
+    .routing-rule { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ════ AUTH SCREEN ════ -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-logo">QR Shift</div>
+      <p class="auth-subtitle">Dynamic QR codes that update anytime</p>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@las.ch">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" onclick="handleLogin()">Sign In</button>
+        <p class="auth-toggle">No account? <a onclick="showRegister()">Create one</a></p>
+      </div>
+
+      <!-- Register Form -->
+      <div id="registerForm" style="display:none">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="Mr. Johnson">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@las.ch">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Min. 6 characters">
+        </div>
+        <button class="btn btn-primary" onclick="handleRegister()">Create Account</button>
+        <p class="auth-toggle">Already have an account? <a onclick="showLogin()">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ DASHBOARD ════ -->
+  <div class="dashboard" id="dashboard">
+    <div class="topbar">
+      <div class="topbar-logo">QR Shift</div>
+      <div class="topbar-right">
+        <span class="topbar-user" id="topbarUser"></span>
+        <button class="btn btn-secondary btn-sm" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Active QR Codes</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Scans</div>
+          <div class="stat-value" id="statScans">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Updated</div>
+          <div class="stat-value" id="statUpdated" style="font-size:1rem;">—</div>
+        </div>
+      </div>
+
+      <div class="page-header">
+        <h2>Your QR Codes</h2>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ New QR Code</button>
+      </div>
+
+      <div class="qr-list" id="qrList">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">⎔</div>
+          <h3>No QR codes yet</h3>
+          <p>Create your first dynamic QR code — print it once, update the link anytime.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CREATE / EDIT MODAL ════ -->
+  <div class="modal-overlay" id="createModal">
+    <div class="modal">
+      <h3 id="modalTitle">New QR Code</h3>
+      <div class="form-group">
+        <label>Label</label>
+        <input type="text" id="qrLabel" placeholder="e.g. Song of the Day">
+      </div>
+      <div class="form-group">
+        <label>Default Destination URL</label>
+        <input type="url" id="qrUrl" placeholder="https://youtube.com/watch?v=...">
+      </div>
+
+      <!-- ── Context-Aware Routing ── -->
+      <div class="routing-section">
+        <label class="routing-toggle">
+          <input type="checkbox" id="routingEnabled" onchange="toggleRoutingUI()">
+          <span>Enable smart routing</span>
+          <span class="badge badge-routing">NEW</span>
+        </label>
+
+        <div id="routingPanel" style="display:none;">
+          <div class="routing-rules" id="routingRules"></div>
+          <button type="button" class="add-rule-btn" onclick="addRoutingRule()">+ Add rule</button>
+          <p class="routing-info">
+            Rules are checked top-to-bottom. The first matching rule wins.
+            If no rule matches, the default URL above is used.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('createModal')">Cancel</button>
+        <button class="btn btn-primary" id="modalSaveBtn" onclick="handleSaveQR()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ DOWNLOAD MODAL ════ -->
+  <div class="modal-overlay" id="downloadModal">
+    <div class="modal">
+      <h3>Download QR Code</h3>
+      <div class="logo-upload-group">
+        <label>Center Logo (optional)</label>
+        <label class="logo-upload-btn">
+          Upload logo
+          <input type="file" id="logoUpload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+        </label>
+        <img id="logoPreviewThumb" class="logo-preview-thumb" style="display:none">
+      </div>
+      <div class="download-preview" id="downloadPreview"></div>
+      <div class="download-options">
+        <button class="btn btn-primary" onclick="downloadQR('png')">Download PNG</button>
+        <button class="btn btn-secondary" onclick="downloadQR('svg')">Download SVG</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('downloadModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ HISTORY MODAL ════ -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal">
+      <h3>Link History</h3>
+      <div class="history-list" id="historyList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('historyModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  QR SHIFT — Dynamic QR Code Manager
+//  Prototype using localStorage for demo
+//  Production: swap for Supabase calls
+// ═══════════════════════════════════════════
+
+const BASE_URL = window.location.origin + window.location.pathname;
+
+// ── Data Layer (localStorage-backed, swap for Supabase) ──
+function getUsers() {
+  return JSON.parse(localStorage.getItem('qrshift_users') || '[]');
+}
+function saveUsers(users) {
+  localStorage.setItem('qrshift_users', JSON.stringify(users));
+}
+function getCurrentUser() {
+  return JSON.parse(sessionStorage.getItem('qrshift_current') || 'null');
+}
+function setCurrentUser(user) {
+  sessionStorage.setItem('qrshift_current', JSON.stringify(user));
+}
+function getQRCodes() {
+  const user = getCurrentUser();
+  if (!user) return [];
+  const all = JSON.parse(localStorage.getItem('qrshift_codes') || '[]');
+  return all.filter(q => q.userId === user.id);
+}
+function getAllQRCodes() {
+  return JSON.parse(localStorage.getItem('qrshift_codes') || '[]');
+}
+function saveAllQRCodes(codes) {
+  localStorage.setItem('qrshift_codes', JSON.stringify(codes));
+}
+
+// ── Auth ──
+function showRegister() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+}
+function showLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+}
+
+function handleRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+  if (!name || !email || !password) return toast('Please fill in all fields');
+  if (password.length < 6) return toast('Password must be at least 6 characters');
+
+  const users = getUsers();
+  if (users.find(u => u.email === email)) return toast('Account already exists');
+
+  const user = { id: crypto.randomUUID(), name, email, password, createdAt: new Date().toISOString() };
+  users.push(user);
+  saveUsers(users);
+  setCurrentUser({ id: user.id, name: user.name, email: user.email });
+  enterDashboard();
+  toast('Welcome to QR Shift!', true);
+}
+
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return toast('Please enter email and password');
+
+  const users = getUsers();
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) return toast('Invalid email or password');
+
+  setCurrentUser({ id: user.id, name: user.name, email: user.email });
+  enterDashboard();
+  toast('Welcome back, ' + user.name.split(' ')[0] + '!', true);
+}
+
+function handleLogout() {
+  sessionStorage.removeItem('qrshift_current');
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+function enterDashboard() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  const user = getCurrentUser();
+  document.getElementById('topbarUser').textContent = user.name;
+  renderQRList();
+}
+
+// ── QR CRUD ──
+let editingId = null;
+
+function generateSlug() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+function getRedirectUrl(slug) {
+  return BASE_URL + '#/q/' + slug;
+}
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New QR Code';
+  document.getElementById('modalSaveBtn').textContent = 'Create';
+  document.getElementById('qrLabel').value = '';
+  document.getElementById('qrUrl').value = '';
+  document.getElementById('routingEnabled').checked = false;
+  toggleRoutingUI();
+  clearRoutingRules();
+  openModal('createModal');
+}
+
+function openEditModal(id) {
+  const codes = getAllQRCodes();
+  const qr = codes.find(q => q.id === id);
+  if (!qr) return;
+
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Update Link';
+  document.getElementById('modalSaveBtn').textContent = 'Update';
+  document.getElementById('qrLabel').value = qr.label;
+  document.getElementById('qrUrl').value = qr.destinationUrl;
+
+  // Load routing rules
+  const hasRouting = qr.routingRules && qr.routingRules.length > 0;
+  document.getElementById('routingEnabled').checked = hasRouting;
+  toggleRoutingUI();
+  clearRoutingRules();
+  if (hasRouting) {
+    qr.routingRules.forEach(rule => addRoutingRule(rule.condition, rule.url));
+  }
+
+  openModal('createModal');
+}
+
+function handleSaveQR() {
+  const label = document.getElementById('qrLabel').value.trim();
+  const url = document.getElementById('qrUrl').value.trim();
+  if (!label || !url) return toast('Please fill in both fields');
+
+  try { new URL(url); } catch { return toast('Please enter a valid URL'); }
+
+  // Collect routing rules
+  const routingEnabled = document.getElementById('routingEnabled').checked;
+  let routingRules = [];
+  if (routingEnabled) {
+    const ruleEls = document.querySelectorAll('#routingRules .routing-rule');
+    for (const el of ruleEls) {
+      const condition = el.querySelector('select').value;
+      const ruleUrl = el.querySelector('input[type="url"]').value.trim();
+      if (condition && ruleUrl) {
+        try { new URL(ruleUrl); } catch { return toast('Invalid URL in routing rule'); }
+        routingRules.push({ condition, url: ruleUrl });
+      }
+    }
+  }
+
+  const allCodes = getAllQRCodes();
+  const user = getCurrentUser();
+
+  if (editingId) {
+    const idx = allCodes.findIndex(q => q.id === editingId);
+    if (idx === -1) return;
+
+    if (!allCodes[idx].history) allCodes[idx].history = [];
+    allCodes[idx].history.push({
+      url: allCodes[idx].destinationUrl,
+      changedAt: new Date().toISOString()
+    });
+
+    allCodes[idx].label = label;
+    allCodes[idx].destinationUrl = url;
+    allCodes[idx].routingRules = routingRules;
+    allCodes[idx].updatedAt = new Date().toISOString();
+    saveAllQRCodes(allCodes);
+    toast('Link updated!', true);
+  } else {
+    const slug = generateSlug();
+    const qr = {
+      id: crypto.randomUUID(),
+      userId: user.id,
+      slug,
+      label,
+      destinationUrl: url,
+      redirectUrl: getRedirectUrl(slug),
+      routingRules,
+      scans: 0,
+      history: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    allCodes.push(qr);
+    saveAllQRCodes(allCodes);
+    toast('QR code created!', true);
+  }
+
+  closeModal('createModal');
+  renderQRList();
+}
+
+function deleteQR(id) {
+  if (!confirm('Delete this QR code? Any printed copies will stop working.')) return;
+  const allCodes = getAllQRCodes().filter(q => q.id !== id);
+  saveAllQRCodes(allCodes);
+  renderQRList();
+  toast('QR code deleted');
+}
+
+// ── Context-Aware Routing UI ──
+const ROUTING_CONDITIONS = [
+  { value: '', label: 'Select...' },
+  { group: 'Day of Week', items: [
+    { value: 'day:monday',    label: 'Monday' },
+    { value: 'day:tuesday',   label: 'Tuesday' },
+    { value: 'day:wednesday', label: 'Wednesday' },
+    { value: 'day:thursday',  label: 'Thursday' },
+    { value: 'day:friday',    label: 'Friday' },
+    { value: 'day:saturday',  label: 'Saturday' },
+    { value: 'day:sunday',    label: 'Sunday' },
+  ]},
+  { group: 'Time of Day', items: [
+    { value: 'time:morning',   label: 'Morning (6am–12pm)' },
+    { value: 'time:afternoon', label: 'Afternoon (12pm–5pm)' },
+    { value: 'time:evening',   label: 'Evening (5pm–9pm)' },
+  ]},
+  { group: 'Date Range', items: [
+    { value: 'week:odd',  label: 'Odd weeks' },
+    { value: 'week:even', label: 'Even weeks' },
+  ]},
+];
+
+function buildConditionSelect(selectedValue) {
+  let html = '';
+  for (const item of ROUTING_CONDITIONS) {
+    if (item.group) {
+      html += `<optgroup label="${item.group}">`;
+      for (const opt of item.items) {
+        const sel = opt.value === selectedValue ? ' selected' : '';
+        html += `<option value="${opt.value}"${sel}>${opt.label}</option>`;
+      }
+      html += '</optgroup>';
+    } else {
+      const sel = item.value === selectedValue ? ' selected' : '';
+      html += `<option value="${item.value}"${sel}>${item.label}</option>`;
+    }
+  }
+  return html;
+}
+
+function toggleRoutingUI() {
+  const on = document.getElementById('routingEnabled').checked;
+  document.getElementById('routingPanel').style.display = on ? 'block' : 'none';
+  if (on && document.querySelectorAll('#routingRules .routing-rule').length === 0) {
+    addRoutingRule();
+  }
+}
+
+function addRoutingRule(condition, url) {
+  const container = document.getElementById('routingRules');
+  const div = document.createElement('div');
+  div.className = 'routing-rule';
+  div.innerHTML = `
+    <select>${buildConditionSelect(condition || '')}</select>
+    <input type="url" placeholder="https://..." value="${url ? esc(url) : ''}">
+    <button type="button" class="remove-rule-btn" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  container.appendChild(div);
+}
+
+function clearRoutingRules() {
+  document.getElementById('routingRules').innerHTML = '';
+}
+
+// ── Routing Engine (evaluates rules at scan time) ──
+function evaluateRouting(qr) {
+  if (!qr.routingRules || qr.routingRules.length === 0) return qr.destinationUrl;
+
+  const now = new Date();
+  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const currentDay = dayNames[now.getDay()];
+  const currentHour = now.getHours();
+  const weekNumber = Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7);
+
+  for (const rule of qr.routingRules) {
+    const [type, value] = rule.condition.split(':');
+    let match = false;
+
+    if (type === 'day') {
+      match = currentDay === value;
+    } else if (type === 'time') {
+      if (value === 'morning')   match = currentHour >= 6  && currentHour < 12;
+      if (value === 'afternoon') match = currentHour >= 12 && currentHour < 17;
+      if (value === 'evening')   match = currentHour >= 17 && currentHour < 21;
+    } else if (type === 'week') {
+      if (value === 'odd')  match = weekNumber % 2 === 1;
+      if (value === 'even') match = weekNumber % 2 === 0;
+    }
+
+    if (match) return rule.url;
+  }
+
+  return qr.destinationUrl;
+}
+
+// ── Rendering ──
+function renderQRList() {
+  const codes = getQRCodes();
+  const list = document.getElementById('qrList');
+  const empty = document.getElementById('emptyState');
+
+  document.getElementById('statTotal').textContent = codes.length;
+  document.getElementById('statScans').textContent = codes.reduce((s, q) => s + (q.scans || 0), 0);
+
+  if (codes.length > 0) {
+    const latest = codes.reduce((a, b) => new Date(a.updatedAt) > new Date(b.updatedAt) ? a : b);
+    document.getElementById('statUpdated').textContent = timeAgo(latest.updatedAt);
+  } else {
+    document.getElementById('statUpdated').textContent = '—';
+  }
+
+  if (codes.length === 0) {
+    empty.style.display = 'block';
+    list.querySelectorAll('.qr-card').forEach(el => el.remove());
+    return;
+  }
+
+  empty.style.display = 'none';
+  const sorted = [...codes].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+  list.innerHTML = sorted.map(qr => {
+    const hasRouting = qr.routingRules && qr.routingRules.length > 0;
+    const routingBadge = hasRouting ? '<span class="badge badge-routing">Smart Routing</span>' : '';
+    const routingInfo = hasRouting
+      ? `<span>${qr.routingRules.length} routing rule${qr.routingRules.length > 1 ? 's' : ''}</span>`
+      : '';
+
+    return `
+      <div class="qr-card" data-id="${qr.id}">
+        <div class="qr-card-preview" id="preview-${qr.id}"></div>
+        <div class="qr-card-info">
+          <h3>${esc(qr.label)} ${routingBadge}</h3>
+          <div class="qr-card-url">→ ${esc(qr.destinationUrl)}</div>
+          <div class="qr-card-meta">
+            <span class="scan-count">${qr.scans || 0} scans</span>
+            <span>Updated ${timeAgo(qr.updatedAt)}</span>
+            <span>${qr.history ? qr.history.length : 0} link changes</span>
+            ${routingInfo}
+          </div>
+        </div>
+        <div class="qr-card-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${qr.id}')">Update Link</button>
+          <button class="btn btn-secondary btn-sm" onclick="openDownloadModal('${qr.id}')">Download</button>
+          <button class="btn btn-secondary btn-sm" onclick="showHistory('${qr.id}')">History</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteQR('${qr.id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  sorted.forEach(qr => {
+    const container = document.getElementById('preview-' + qr.id);
+    if (container) {
+      container.innerHTML = '';
+      new QRCode(container, {
+        text: qr.redirectUrl,
+        width: 92,
+        height: 92,
+        colorDark: '#1a1d27',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  });
+}
+
+// ── Logo Overlay for QR Downloads ──
+let uploadedLogoDataUrl = null;
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedLogoDataUrl = e.target.result;
+    const thumb = document.getElementById('logoPreviewThumb');
+    thumb.src = uploadedLogoDataUrl;
+    thumb.style.display = 'inline-block';
+    // Re-render the download preview with logo overlay
+    renderDownloadPreviewWithLogo();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderDownloadPreviewWithLogo() {
+  const preview = document.getElementById('downloadPreview');
+  const canvas = preview.querySelector('canvas');
+  if (!canvas || !uploadedLogoDataUrl) return;
+
+  const ctx = canvas.getContext('2d');
+  const logo = new Image();
+  logo.onload = function() {
+    const logoSize = canvas.width * 0.22;
+    const x = (canvas.width - logoSize) / 2;
+    const y = (canvas.height - logoSize) / 2;
+
+    // White background behind logo for readability
+    const pad = 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(x - pad, y - pad, logoSize + pad * 2, logoSize + pad * 2, 6);
+    ctx.fill();
+
+    ctx.drawImage(logo, x, y, logoSize, logoSize);
+  };
+  logo.src = uploadedLogoDataUrl;
+}
+
+// ── Download ──
+let downloadingId = null;
+
+function openDownloadModal(id) {
+  downloadingId = id;
+  const codes = getAllQRCodes();
+  const qr = codes.find(q => q.id === id);
+  if (!qr) return;
+
+  // Reset logo upload
+  uploadedLogoDataUrl = null;
+  document.getElementById('logoUpload').value = '';
+  document.getElementById('logoPreviewThumb').style.display = 'none';
+
+  const preview = document.getElementById('downloadPreview');
+  preview.innerHTML = '';
+  new QRCode(preview, {
+    text: qr.redirectUrl,
+    width: 256,
+    height: 256,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  openModal('downloadModal');
+}
+
+function downloadQR(format) {
+  const preview = document.getElementById('downloadPreview');
+  const codes = getAllQRCodes();
+  const qr = codes.find(q => q.id === downloadingId);
+  if (!qr) return;
+
+  if (format === 'png') {
+    const canvas = preview.querySelector('canvas');
+    if (!canvas) return toast('QR not ready, try again');
+
+    if (uploadedLogoDataUrl) {
+      // Create a composite canvas with logo
+      const compositeCanvas = document.createElement('canvas');
+      compositeCanvas.width = canvas.width;
+      compositeCanvas.height = canvas.height;
+      const ctx = compositeCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, 0);
+
+      const logo = new Image();
+      logo.onload = function() {
+        const logoSize = compositeCanvas.width * 0.22;
+        const x = (compositeCanvas.width - logoSize) / 2;
+        const y = (compositeCanvas.height - logoSize) / 2;
+        const pad = 4;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(x - pad, y - pad, logoSize + pad * 2, logoSize + pad * 2, 6);
+        ctx.fill();
+        ctx.drawImage(logo, x, y, logoSize, logoSize);
+
+        const link = document.createElement('a');
+        link.download = `qrshift-${qr.slug}.png`;
+        link.href = compositeCanvas.toDataURL('image/png');
+        link.click();
+      };
+      logo.src = uploadedLogoDataUrl;
+    } else {
+      const link = document.createElement('a');
+      link.download = `qrshift-${qr.slug}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  } else {
+    const canvas = preview.querySelector('canvas');
+    if (!canvas) return;
+    const size = 256;
+    const svgParts = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><rect width="${size}" height="${size}" fill="#fff"/>`];
+
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const moduleSize = 4;
+    for (let y = 0; y < canvas.height; y += moduleSize) {
+      for (let x = 0; x < canvas.width; x += moduleSize) {
+        const i = (y * canvas.width + x) * 4;
+        if (imgData.data[i] < 128) {
+          const sx = (x / canvas.width) * size;
+          const sy = (y / canvas.height) * size;
+          const sw = (moduleSize / canvas.width) * size;
+          const sh = (moduleSize / canvas.height) * size;
+          svgParts.push(`<rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" fill="#000"/>`);
+        }
+      }
+    }
+    svgParts.push('</svg>');
+    const blob = new Blob([svgParts.join('')], { type: 'image/svg+xml' });
+    const link = document.createElement('a');
+    link.download = `qrshift-${qr.slug}.svg`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }
+
+  toast('Downloaded!', true);
+}
+
+// ── History ──
+function showHistory(id) {
+  const codes = getAllQRCodes();
+  const qr = codes.find(q => q.id === id);
+  if (!qr) return;
+
+  const list = document.getElementById('historyList');
+  const history = qr.history || [];
+
+  if (history.length === 0) {
+    list.innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;">No link changes yet — this QR code still points to its original destination.</p>';
+  } else {
+    list.innerHTML = [...history].reverse().map(h => `
+      <div class="history-item">
+        <span class="history-url">${esc(h.url)}</span>
+        <span>${timeAgo(h.changedAt)}</span>
+      </div>
+    `).join('') + `
+      <div class="history-item">
+        <span class="history-url" style="color:var(--success);">Current: ${esc(qr.destinationUrl)}</span>
+        <span>now</span>
+      </div>
+    `;
+  }
+
+  openModal('historyModal');
+}
+
+// ── Redirect Handler (hash-based for prototype) ──
+function handleRedirect() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#/q/')) return false;
+
+  const slug = hash.replace('#/q/', '');
+  const allCodes = getAllQRCodes();
+  const qr = allCodes.find(q => q.slug === slug);
+
+  if (qr) {
+    qr.scans = (qr.scans || 0) + 1;
+    saveAllQRCodes(allCodes);
+
+    // Use context-aware routing to determine the destination
+    const destination = evaluateRouting(qr);
+    window.location.href = destination;
+    return true;
+  } else {
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'DM Sans',sans-serif;color:#e8e9ed;background:#0f1117;text-align:center;padding:2rem;">
+        <div>
+          <h1 style="font-family:'Fraunces',serif;font-size:2rem;margin-bottom:0.5rem;">Link Not Found</h1>
+          <p style="color:#8b8fa3;">This QR code is no longer active.</p>
+        </div>
+      </div>
+    `;
+    return true;
+  }
+}
+
+// ── Utilities ──
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function timeAgo(dateStr) {
+  const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+  if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+  if (seconds < 2592000) return Math.floor(seconds / 86400) + 'd ago';
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function toast(msg, success) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (success ? ' success' : '');
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('active');
+  });
+});
+
+// ── Init ──
+if (!handleRedirect()) {
+  const user = getCurrentUser();
+  if (user) enterDashboard();
+}
+</script>
+</body>
+</html>
