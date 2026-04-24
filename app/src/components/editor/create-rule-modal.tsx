@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createRoutingRule } from "@/lib/rule-actions";
 import { useRouter } from "next/navigation";
+import { createRoutingRule } from "@/lib/rule-actions";
 import type { RuleType } from "@/types/database";
 
 interface Props {
-  qrCodeId: string;
+  slug: string;
+  token: string;
   onClose: () => void;
 }
 
@@ -19,7 +20,7 @@ const RULE_TYPES: { value: RuleType; label: string; description: string }[] = [
   { value: "custom", label: "Custom", description: "Match query parameters" },
 ];
 
-export function CreateRuleModal({ qrCodeId, onClose }: Props) {
+export function CreateRuleModal({ slug, token, onClose }: Props) {
   const [ruleType, setRuleType] = useState<RuleType>("time_range");
   const [destinationUrl, setDestinationUrl] = useState("");
   const [label, setLabel] = useState("");
@@ -28,7 +29,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Rule-specific fields
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [timezone, setTimezone] = useState("America/New_York");
@@ -74,17 +74,17 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
     setError(null);
     setLoading(true);
 
-    const conditions = buildConditions();
     const formData = new FormData();
-    formData.set("qr_code_id", qrCodeId);
+    formData.set("slug", slug);
+    formData.set("token", token);
     formData.set("rule_type", ruleType);
     formData.set("destination_url", destinationUrl);
     formData.set("label", label);
     formData.set("priority", priority);
-    formData.set("conditions", JSON.stringify(conditions));
+    formData.set("conditions", JSON.stringify(buildConditions()));
 
     const result = await createRoutingRule(formData);
-    if (result.error) {
+    if ("error" in result) {
       setError(result.error);
       setLoading(false);
       return;
@@ -105,7 +105,7 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-[#1a1d27] border border-[#2a2e3d] rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-bold font-serif text-[#e8e9ed] mb-5">
           New Routing Rule
         </h3>
@@ -117,7 +117,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Rule Type */}
           <div>
             <label className="block text-xs font-medium text-[#8b8fa3] uppercase tracking-wider mb-1.5">
               Rule Type
@@ -135,7 +134,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
             </select>
           </div>
 
-          {/* Label */}
           <div>
             <label className="block text-xs font-medium text-[#8b8fa3] uppercase tracking-wider mb-1.5">
               Label (optional)
@@ -149,7 +147,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
             />
           </div>
 
-          {/* Destination URL */}
           <div>
             <label className="block text-xs font-medium text-[#8b8fa3] uppercase tracking-wider mb-1.5">
               Destination URL
@@ -164,7 +161,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
             />
           </div>
 
-          {/* Priority */}
           <div>
             <label className="block text-xs font-medium text-[#8b8fa3] uppercase tracking-wider mb-1.5">
               Priority (lower = higher priority)
@@ -179,7 +175,6 @@ export function CreateRuleModal({ qrCodeId, onClose }: Props) {
             />
           </div>
 
-          {/* Conditional Fields */}
           <div className="border-t border-[#2a2e3d] pt-4">
             <div className="text-xs font-medium text-[#8b8fa3] uppercase tracking-wider mb-3">
               Conditions

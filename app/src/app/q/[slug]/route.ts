@@ -1,94 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import {
+  getQR,
+  getRules,
+  recordScan,
+  incrementScanCount,
+} from "@/lib/storage";
 import { evaluateRules, parseDeviceType, type ScanContext } from "@/lib/routing";
-import type { RoutingRule } from "@/types/database";
+import type { ScanEvent } from "@/types/database";
 
 /**
  * Redirect engine — the core of QR Shift.
- * Handles both QR scans and short link clicks.
- * Target: <50ms with cache hit (Phase 2: Redis).
+ * Handles both QR scans and short-link clicks.
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+  const qr = await getQR(slug);
 
-  // Create a Supabase client without cookie auth (public read)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } },
-  );
-
-  // Look up the QR code
-  const { data: qrRaw, error } = await supabase
-    .from("qr_codes")
-    .select("id, destination_url, is_active, label, qr_style, metadata")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
-
-  const qr = qrRaw as { id: string; destination_url: string; label: string } | null;
-
-  if (error || !qr) {
+  if (!qr || !qr.is_active) {
     return new NextResponse(notFoundPage(), {
       status: 404,
       headers: { "Content-Type": "text/html" },
     });
   }
 
-  // Build scan context from request
   const userAgent = request.headers.get("user-agent");
   const referrer = request.headers.get("referer");
-  const source = referrer ? "short_link" : "qr_scan";
+  const source: "qr_scan" | "short_link" = referrer ? "short_link" : "qr_scan";
 
+  const geo = geoFromHeaders(request);
   const context: ScanContext = {
     timestamp: new Date(),
     userAgent: userAgent ?? undefined,
     deviceType: parseDeviceType(userAgent),
+    country: geo.country,
+    region: geo.region,
+    city: geo.city,
     referrer: referrer ?? undefined,
     customSignals: Object.fromEntries(request.nextUrl.searchParams.entries()),
   };
 
-  // Fetch routing rules for this QR code
-  const { data: rulesRaw } = await supabase
-    .from("routing_rules")
-    .select("*")
-    .eq("qr_code_id", qr.id)
-    .eq("is_active", true)
-    .order("priority", { ascending: true });
-
-  const rules = (rulesRaw ?? []) as unknown as RoutingRule[];
-
-  // Evaluate rules
+  const rules = await getRules(slug);
   const result = evaluateRules(rules, context, qr.destination_url);
 
-  // Log scan event asynchronously (fire and forget)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase
-    .from("scan_events")
-    .insert({
-      qr_code_id: qr.id,
-      source,
-      user_agent: userAgent,
-      device_type: context.deviceType ?? null,
-      referrer,
-      rule_matched: result.matchedRuleId,
-      destination_url: result.destinationUrl,
-      custom_signals: context.customSignals ?? null,
-    } as any)
-    .then(() => {});
+  const event: ScanEvent = {
+    scanned_at: new Date().toISOString(),
+    source,
+    device_type: context.deviceType ?? null,
+    country: geo.country ?? null,
+    region: geo.region ?? null,
+    city: geo.city ?? null,
+    referrer: referrer ?? null,
+    rule_matched: result.matchedRuleId,
+    destination_url: result.destinationUrl,
+    custom_signals:
+      Object.keys(context.customSignals ?? {}).length > 0
+        ? (context.customSignals ?? null)
+        : null,
+  };
 
-  // Increment scan/click count
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase.rpc("increment_scan", { p_slug: slug, p_source: source } as any).then(() => {});
+  // Fire-and-forget so we don't delay the redirect.
+  recordScan(slug, event).catch(() => {});
+  incrementScanCount(slug, source).catch(() => {});
 
-  // Serve OG meta tags for rich previews before redirect
   const isCrawler = /facebookexternalhit|twitterbot|slackbot|linkedinbot|whatsapp|telegrambot|discordbot/i.test(
     userAgent ?? "",
   );
-
   if (isCrawler) {
     return new NextResponse(ogPreviewPage(qr.label, result.destinationUrl, slug), {
       status: 200,
@@ -96,8 +75,30 @@ export async function GET(
     });
   }
 
-  // 302 redirect
   return NextResponse.redirect(result.destinationUrl, 302);
+}
+
+interface GeoInfo {
+  country?: string;
+  region?: string;
+  city?: string;
+}
+
+function geoFromHeaders(request: NextRequest): GeoInfo {
+  const h = request.headers;
+  const decode = (v: string | null) => {
+    if (!v) return undefined;
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  };
+  return {
+    country: decode(h.get("x-vercel-ip-country")) ?? undefined,
+    region: decode(h.get("x-vercel-ip-country-region")) ?? undefined,
+    city: decode(h.get("x-vercel-ip-city")) ?? undefined,
+  };
 }
 
 function notFoundPage(): string {
@@ -120,6 +121,7 @@ function notFoundPage(): string {
 
 function ogPreviewPage(label: string, destination: string, slug: string): string {
   const safe = (s: string) => s.replace(/[<>"&]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -127,7 +129,7 @@ function ogPreviewPage(label: string, destination: string, slug: string): string
 <meta property="og:title" content="${safe(label)} — QR Shift">
 <meta property="og:description" content="Scan or click to visit: ${safe(destination)}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="${process.env.NEXT_PUBLIC_APP_URL}/q/${safe(slug)}">
+<meta property="og:url" content="${safe(appUrl)}/q/${safe(slug)}">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${safe(label)} — QR Shift">
 <meta name="twitter:description" content="Scan or click to visit: ${safe(destination)}">
