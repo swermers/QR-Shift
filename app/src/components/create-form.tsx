@@ -51,7 +51,7 @@ export function CreateForm() {
           placeholder="e.g. Song of the Day"
           required
           maxLength={80}
-          className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/20 transition"
+          className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/20 transition"
         />
       </div>
 
@@ -65,7 +65,7 @@ export function CreateForm() {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com/..."
           required
-          className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/20 transition"
+          className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] focus:ring-2 focus:ring-[#6c63ff]/20 transition"
         />
       </div>
 

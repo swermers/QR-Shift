@@ -124,7 +124,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
             <select
               value={ruleType}
               onChange={(e) => setRuleType(e.target.value as RuleType)}
-              className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
+              className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
             >
               {RULE_TYPES.map((rt) => (
                 <option key={rt.value} value={rt.value}>
@@ -143,7 +143,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Lunch menu redirect"
-              className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff]"
+              className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff]"
             />
           </div>
 
@@ -157,7 +157,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
               onChange={(e) => setDestinationUrl(e.target.value)}
               placeholder="https://..."
               required
-              className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff]"
+              className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff]"
             />
           </div>
 
@@ -171,7 +171,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
               onChange={(e) => setPriority(e.target.value)}
               min="1"
               max="999"
-              className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
+              className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
             />
           </div>
 
@@ -189,7 +189,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                       type="time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                      className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
                     />
                   </div>
                   <div>
@@ -198,7 +198,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                      className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
                     />
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
                     placeholder="America/New_York"
-                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                    className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                   />
                 </div>
               </div>
@@ -240,7 +240,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
               <select
                 value={deviceType}
                 onChange={(e) => setDeviceType(e.target.value)}
-                className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
               >
                 <option value="mobile">Mobile</option>
                 <option value="desktop">Desktop</option>
@@ -256,21 +256,21 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   placeholder="Country (e.g. US)"
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                 />
                 <input
                   type="text"
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   placeholder="Region (optional)"
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                 />
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="City (optional)"
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                 />
               </div>
             )}
@@ -283,7 +283,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                    className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
                   />
                 </div>
                 <div>
@@ -292,7 +292,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                    className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
                   />
                 </div>
               </div>
@@ -305,12 +305,12 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                   value={customKey}
                   onChange={(e) => setCustomKey(e.target.value)}
                   placeholder="Query parameter key"
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                 />
                 <select
                   value={customOp}
                   onChange={(e) => setCustomOp(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff] text-sm"
                 >
                   <option value="equals">Equals</option>
                   <option value="contains">Contains</option>
@@ -322,7 +322,7 @@ export function CreateRuleModal({ slug, token, onClose }: Props) {
                   value={customValue}
                   onChange={(e) => setCustomValue(e.target.value)}
                   placeholder="Value to match"
-                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] focus:outline-none focus:border-[#6c63ff] text-sm"
+                  className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] focus:outline-none focus:border-[#6c63ff] text-sm"
                 />
               </div>
             )}

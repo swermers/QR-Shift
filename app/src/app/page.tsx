@@ -38,11 +38,11 @@ export default function HomePage() {
           </div>
         )}
 
-        <p className="text-xs text-[#555] mt-8">
+        <p className="text-xs text-[#6b7186] mt-8">
           Already have an edit link? Paste it in your browser to manage your QR.
         </p>
 
-        <p className="text-xs text-[#555] mt-2">
+        <p className="text-xs text-[#6b7186] mt-2">
           <Link href="https://github.com/swermers/qr-shift" className="underline hover:text-[#8b8fa3]">
             View source on GitHub
           </Link>

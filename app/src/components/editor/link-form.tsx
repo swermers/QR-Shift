@@ -118,7 +118,7 @@ export function LinkForm({ qr, token, shortUrl }: Props) {
             onChange={(e) => setLabel(e.target.value)}
             required
             maxLength={80}
-            className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
+            className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
           />
         </div>
         <div>
@@ -130,9 +130,9 @@ export function LinkForm({ qr, token, shortUrl }: Props) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
+            className="w-full px-4 py-3 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] focus:outline-none focus:border-[#6c63ff]"
           />
-          <p className="text-xs text-[#555] mt-1">
+          <p className="text-xs text-[#6b7186] mt-1">
             Used when no routing rule matches.
           </p>
         </div>
