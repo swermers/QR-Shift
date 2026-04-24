@@ -1,23 +1,23 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { verifyToken } from "@/lib/tokens";
+import { getQR, saveQR } from "@/lib/storage";
 import type { QRStyle } from "@/types/database";
 
-export async function updateQRStyle(qrCodeId: string, style: QRStyle) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+type ActionResult = { success: true } | { error: string };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await supabase
-    .from("qr_codes")
-    .update({ qr_style: style } as any)
-    .eq("id", qrCodeId)
-    .eq("user_id", user.id);
+export async function updateQRStyle(slug: string, token: string, style: QRStyle): Promise<ActionResult> {
+  const qr = await getQR(slug);
+  if (!qr) return { error: "QR code not found" };
+  if (!verifyToken(token, qr.edit_token_hash)) {
+    return { error: "Invalid edit token" };
+  }
 
-  if (error) return { error: error.message };
+  qr.qr_style = style;
+  qr.updated_at = new Date().toISOString();
+  await saveQR(qr);
 
-  revalidatePath("/dashboard");
+  revalidatePath(`/edit/${slug}`);
   return { success: true };
 }

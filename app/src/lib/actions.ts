@@ -1,117 +1,110 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { generateSlug, shortUrl } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
+import { generateSlug } from "@/lib/constants";
+import { generateEditToken, hashToken, verifyToken } from "@/lib/tokens";
+import { getQR, saveQR, deleteQR } from "@/lib/storage";
+import type { QRCode } from "@/types/database";
 
-export async function createQRCode(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+export type CreateQRResult =
+  | { error: string }
+  | { slug: string; editToken: string };
 
-  const label = (formData.get("label") as string)?.trim();
-  const destinationUrl = (formData.get("destination_url") as string)?.trim();
+export type ActionResult = { success: true } | { error: string };
 
-  if (!label || !destinationUrl) return { error: "Label and URL are required" };
+export async function createQRCode(formData: FormData): Promise<CreateQRResult> {
+  const label = (formData.get("label") as string | null)?.trim();
+  const destinationUrl = (formData.get("destination_url") as string | null)?.trim();
 
+  if (!label || !destinationUrl) {
+    return { error: "Label and URL are required" };
+  }
   try {
     new URL(destinationUrl);
   } catch {
     return { error: "Invalid URL" };
   }
 
-  const slug = generateSlug();
+  // Retry on the astronomically-unlikely slug collision.
+  let slug = generateSlug();
+  for (let i = 0; i < 5; i++) {
+    const existing = await getQR(slug);
+    if (!existing) break;
+    slug = generateSlug();
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await supabase.from("qr_codes").insert({
-    user_id: user.id,
+  const editToken = generateEditToken();
+  const now = new Date().toISOString();
+
+  const qr: QRCode = {
     slug,
-    custom_slug: false,
     label,
     destination_url: destinationUrl,
-    short_url: shortUrl(slug),
     is_active: true,
-    tags: [],
-  } as any);
+    qr_style: null,
+    edit_token_hash: hashToken(editToken),
+    scan_count: 0,
+    click_count: 0,
+    created_at: now,
+    updated_at: now,
+  };
 
-  if (error) return { error: error.message };
-
-  revalidatePath("/dashboard");
-  return { slug };
+  await saveQR(qr);
+  return { slug, editToken };
 }
 
-export async function updateQRCode(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+type AuthResult =
+  | { kind: "error"; error: string }
+  | { kind: "ok"; qr: QRCode };
 
-  const id = formData.get("id") as string;
-  const label = (formData.get("label") as string)?.trim();
-  const destinationUrl = (formData.get("destination_url") as string)?.trim();
+function authorize(qr: QRCode | null, token: string | null): AuthResult {
+  if (!qr) return { kind: "error", error: "QR code not found" };
+  if (!verifyToken(token, qr.edit_token_hash)) {
+    return { kind: "error", error: "Invalid edit token" };
+  }
+  return { kind: "ok", qr };
+}
 
-  if (!id || !label || !destinationUrl) return { error: "All fields are required" };
+export async function updateQRCode(formData: FormData): Promise<ActionResult> {
+  const slug = formData.get("slug") as string | null;
+  const token = formData.get("token") as string | null;
+  const label = (formData.get("label") as string | null)?.trim();
+  const destinationUrl = (formData.get("destination_url") as string | null)?.trim();
 
+  if (!slug || !label || !destinationUrl) {
+    return { error: "All fields are required" };
+  }
   try {
     new URL(destinationUrl);
   } catch {
     return { error: "Invalid URL" };
   }
 
-  // Get current destination for history
-  const { data: current } = await supabase
-    .from("qr_codes")
-    .select("destination_url")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const auth = authorize(await getQR(slug), token);
+  if (auth.kind === "error") return { error: auth.error };
 
-  const row = current as { destination_url: string } | null;
-  if (!row) return { error: "QR code not found" };
+  auth.qr.label = label;
+  auth.qr.destination_url = destinationUrl;
+  auth.qr.updated_at = new Date().toISOString();
+  await saveQR(auth.qr);
 
-  // Log history if URL changed
-  if (row.destination_url !== destinationUrl) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await supabase.from("link_history").insert({
-      qr_code_id: id,
-      previous_url: row.destination_url,
-      new_url: destinationUrl,
-      changed_by: "user",
-    } as any);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await supabase
-    .from("qr_codes")
-    .update({ label, destination_url: destinationUrl } as any)
-    .eq("id", id)
-    .eq("user_id", user.id);
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/dashboard");
+  revalidatePath(`/edit/${slug}`);
   return { success: true };
 }
 
-export async function deleteQRCode(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await supabase
-    .from("qr_codes")
-    .update({ is_active: false } as any)
-    .eq("id", id)
-    .eq("user_id", user.id);
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/dashboard");
+export async function deleteQRCode(slug: string, token: string): Promise<ActionResult> {
+  const auth = authorize(await getQR(slug), token);
+  if (auth.kind === "error") return { error: auth.error };
+  await deleteQR(slug);
   return { success: true };
 }
 
-export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  revalidatePath("/", "layout");
+export async function setQRActive(slug: string, token: string, active: boolean): Promise<ActionResult> {
+  const auth = authorize(await getQR(slug), token);
+  if (auth.kind === "error") return { error: auth.error };
+  auth.qr.is_active = active;
+  auth.qr.updated_at = new Date().toISOString();
+  await saveQR(auth.qr);
+  revalidatePath(`/edit/${slug}`);
+  return { success: true };
 }
