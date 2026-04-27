@@ -135,7 +135,7 @@ export function CustomizePanel({ qr, token, shortUrl }: Props) {
                 type="text"
                 value={fgColor}
                 onChange={(e) => setFgColor(e.target.value)}
-                className="flex-1 px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] text-sm focus:outline-none focus:border-[#6c63ff]"
+                className="flex-1 px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] text-sm focus:outline-none focus:border-[#6c63ff]"
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ export function CustomizePanel({ qr, token, shortUrl }: Props) {
                 type="text"
                 value={bgColor}
                 onChange={(e) => setBgColor(e.target.value)}
-                className="flex-1 px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] text-sm focus:outline-none focus:border-[#6c63ff]"
+                className="flex-1 px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] text-sm focus:outline-none focus:border-[#6c63ff]"
               />
             </div>
           </div>
@@ -169,7 +169,7 @@ export function CustomizePanel({ qr, token, shortUrl }: Props) {
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="https://example.com/logo.png"
-              className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2e3d] rounded-lg text-[#e8e9ed] placeholder-[#555] text-sm focus:outline-none focus:border-[#6c63ff]"
+              className="w-full px-3 py-2 bg-[#262a36] border border-[#3a3f52] rounded-lg text-[#e8e9ed] placeholder-[#8b8fa3] text-sm focus:outline-none focus:border-[#6c63ff]"
             />
           </div>
 

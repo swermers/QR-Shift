@@ -36,7 +36,7 @@ export function AnalyticsSection({ analytics }: Props) {
           Over Time
         </h3>
         {total === 0 ? (
-          <p className="text-[#555] text-sm py-6 text-center">No scan data yet</p>
+          <p className="text-[#6b7186] text-sm py-6 text-center">No scan data yet</p>
         ) : (
           <div className="flex items-end gap-[2px] h-32">
             {analytics.scansByDay.map((d) => (
@@ -54,7 +54,7 @@ export function AnalyticsSection({ analytics }: Props) {
             ))}
           </div>
         )}
-        <div className="flex justify-between mt-2 text-[10px] text-[#555]">
+        <div className="flex justify-between mt-2 text-[10px] text-[#6b7186]">
           <span>{analytics.scansByDay[0]?.date}</span>
           <span>{analytics.scansByDay[analytics.scansByDay.length - 1]?.date}</span>
         </div>
@@ -66,7 +66,7 @@ export function AnalyticsSection({ analytics }: Props) {
             Devices
           </h3>
           {analytics.deviceBreakdown.length === 0 ? (
-            <p className="text-[#555] text-sm py-4 text-center">No data</p>
+            <p className="text-[#6b7186] text-sm py-4 text-center">No data</p>
           ) : (
             <div className="space-y-3">
               {analytics.deviceBreakdown.map((d) => (
@@ -97,7 +97,7 @@ export function AnalyticsSection({ analytics }: Props) {
             Top Locations
           </h3>
           {analytics.topCountries.length === 0 ? (
-            <p className="text-[#555] text-sm py-4 text-center">No data</p>
+            <p className="text-[#6b7186] text-sm py-4 text-center">No data</p>
           ) : (
             <div className="space-y-3">
               {analytics.topCountries.map((c) => (
@@ -124,7 +124,7 @@ export function AnalyticsSection({ analytics }: Props) {
           Top Referrers
         </h3>
         {analytics.topReferrers.length === 0 ? (
-          <p className="text-[#555] text-sm py-4 text-center">No data</p>
+          <p className="text-[#6b7186] text-sm py-4 text-center">No data</p>
         ) : (
           <div className="space-y-3">
             {analytics.topReferrers.map((r) => (
@@ -150,7 +150,7 @@ export function AnalyticsSection({ analytics }: Props) {
           Recent Activity
         </h3>
         {analytics.recentScans.length === 0 ? (
-          <p className="text-[#555] text-sm py-4 text-center">No scans yet</p>
+          <p className="text-[#6b7186] text-sm py-4 text-center">No scans yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">

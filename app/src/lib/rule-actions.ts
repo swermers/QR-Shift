@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 import { verifyToken } from "@/lib/tokens";
 import { getQR, getRules, saveRules } from "@/lib/storage";
 import type { RoutingRule, RuleConditions, RuleType } from "@/types/database";

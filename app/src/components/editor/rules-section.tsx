@@ -87,7 +87,7 @@ export function RulesSection({ slug, token, rules, defaultDestination }: Props) 
                     <span className="text-xs px-2 py-0.5 rounded bg-[#6c63ff]/10 text-[#6c63ff] font-medium">
                       {RULE_TYPE_LABELS[rule.rule_type] || rule.rule_type}
                     </span>
-                    <span className="text-xs text-[#555]">
+                    <span className="text-xs text-[#6b7186]">
                       Priority: {rule.priority}
                     </span>
                     {!rule.is_active && (
@@ -104,7 +104,7 @@ export function RulesSection({ slug, token, rules, defaultDestination }: Props) 
                   <p className="text-xs text-[#8b8fa3] break-all">
                     → {rule.destination_url}
                   </p>
-                  <pre className="text-xs text-[#555] mt-2 overflow-x-auto">
+                  <pre className="text-xs text-[#6b7186] mt-2 overflow-x-auto">
                     {JSON.stringify(rule.conditions, null, 2)}
                   </pre>
                 </div>
